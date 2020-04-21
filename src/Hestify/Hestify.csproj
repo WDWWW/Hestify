@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageId>Hestify</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Jinseoung Lee</Authors>
+        <PackageTags>http;http-client;httpclient;httptesthelper;helper;restclient</PackageTags>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageProjectUrl>https://github.com/WDWWW/Hestify</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/WDWWW/Hestify/blob/master/LICENSE</PackageLicenseUrl>
+        <DocumentationFile>bin\Debug\Hestify.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DocumentationFile>bin\Debug\Hestify.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    </ItemGroup>
+
+</Project>
