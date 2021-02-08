@@ -1,6 +1,6 @@
 ﻿using System.Net.Http;
 
-namespace Hestify
+namespace Hestify.Helpers
 {
     public static class HttpClientHelper
     {

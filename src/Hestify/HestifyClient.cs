@@ -1,55 +1,55 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using System.Xml.Serialization;
+using Hestify.Helpers;
+using Newtonsoft.Json;
 
 namespace Hestify
 {
-    public class HestifyClient
+    public class HestifyClient : IDisposable
 	{
-		public delegate Task<HestifyClient> Interceptor(HestifyClient client);
-
-		private readonly string _relativeUri;
-
 		public readonly HttpClient Client;
-		private Interceptor _interceptor;
 
-		public HestifyClient(HttpClient client, string relativeUri)
+		public HestifyClient(HttpClient client, string baseAddress)
 		{
 			Client = client;
-			_relativeUri = relativeUri;
-			_interceptor = Task.FromResult;
+			client.BaseAddress = new Uri(baseAddress);
 		}
 
-		private IDictionary<string, string> RequestHeaders { get; set; } = new Dictionary<string, string>();
+		public HestifyClient(HttpClient client)
+		{
+			Client = client;
+		}
 
-		private NameValueCollection RequestParams { get; set; } = new NameValueCollection();
+		public HestifyClient(string address) : this(new HttpClient {BaseAddress = new Uri(address)})
+		{
+		}
 
-		private HttpContent Content { get; set; }
+		public HestifyClient() : this(new HttpClient())
+		{
+		}
+
+		private IEnumerable<Action<HttpRequestMessage>> MessageBuilders { get; set; } = Enumerable.Empty<Action<HttpRequestMessage>>();
+		
 
 		public HestifyClient WithHeader(string key, string value)
 		{
-			var clone = Clone();
-			clone.RequestHeaders.Add(key, value);
-			return clone;
+			return Clone(message =>
+			{
+				message.Headers.Add(key, value);
+			});
 		}
 
 		public HestifyClient WithHeader(HttpRequestHeader key, string value)
 		{
-			var clone = Clone();
-			clone.RequestHeaders.Add(key.ToString(), value);
-			return clone;
-		}
-
-		public HestifyClient AddInterceptor(Interceptor interceptor)
-		{
-			var origin = _interceptor;
-			_interceptor = async client => await interceptor(await origin(client));
-			return this;
+			return Clone(message => message.Headers.Add(key.ToString(), value));
 		}
 
 		public HestifyClient WithBearerToken(string token)
@@ -59,31 +59,51 @@ namespace Hestify
 
 		public HestifyClient WithJsonBody<T>(T content) where T : class
 		{
-			if (Content != null)
-				throw new ArgumentException("Content is already set. WithJsonBody is not allow multiple times.");
+			return WithBody(new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json"));
+		}
 
-			var clone = Clone();
-			clone.Content = new JsonContent(content);;
-			return clone;
+		public HestifyClient WithXmlBody<T>(T content, string mediaType = "application/xml")
+		{
+			var xmlSerializer = new XmlSerializer(typeof(T));
+			using var memoryStream = new MemoryStream();
+			using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8);
+			xmlSerializer.Serialize(streamWriter, content);
+			var body = Encoding.UTF8.GetString(memoryStream.ToArray());
+			return WithBody(new StringContent(body, Encoding.UTF8, mediaType));
+		}
+
+		public HestifyClient WithBody(HttpContent content)
+		{
+			return Clone(message =>
+			{
+				if (message.Content != default)
+					throw new InvalidOperationException("HttpContent is already set. Request can have only one http content.");
+
+				message.Content = content;
+			});
 		}
 
 		public HestifyClient WithParam(string key, string value)
 		{
-			var clone = Clone();
-			clone.RequestParams.Add(key, value);
-			return clone;
+			return Clone(message =>
+			{
+				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
+				query[key] = value;
+				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
+			});
 		}
 
 		public HestifyClient WithParams(params (string key, string value)[] parameters)
 		{
-			var clone = Clone();
-			foreach (var (key, value) in parameters) clone.RequestParams.Add(key, value);
-			return clone;
-		}
-
-		public HestifyClient WithPagination(int index, int size)
-		{
-			return WithParams(("index", index.ToString()), ("size", size.ToString()));
+			return Clone(message =>
+			{
+				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
+				foreach (var (key, value) in parameters)
+				{
+					query[key] = value;
+				}
+				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
+			});
 		}
 
 		public async Task<HttpResponseMessage> GetAsync()
@@ -113,8 +133,8 @@ namespace Hestify
 
 		private async Task<HttpResponseMessage> SendAsync(HttpMethod httpMethod)
 		{
-			var client = await _interceptor(this);
-			return await Client.SendAsync(client.HttpRequestMessage(httpMethod));
+			using var httpRequestMessage = HttpRequestMessage(httpMethod);
+			return await Client.SendAsync(httpRequestMessage);
 		}
 
 		public HestifyClient WithMultipartForm(FileStream fileStream, string name = null)
@@ -124,60 +144,47 @@ namespace Hestify
 
 		public HestifyClient WithMultipartForm(Stream stream, string name = null, string filename = null)
 		{
-			Content ??= new MultipartFormDataContent();
-
-			if (!(Content is MultipartFormDataContent content))
-				throw new ArgumentException("Can't be with multipart content. Content was set other content type.");
-			
-			var clone = Clone();
-			content.Add(new StreamContent(stream), name, filename);
-			return clone;
-
+			return Clone(message =>
+			{
+				switch (message.Content)
+				{
+					case MultipartFormDataContent content:
+						content.Add(new StreamContent(stream), name, filename);
+						break;
+					case null:
+						message.Content = new MultipartFormDataContent
+						{
+							{new StreamContent(stream), name, filename}
+						};
+						break;
+					default:
+						throw new InvalidOperationException(
+							"Couldn't add multipart form content if there is content of a different than MultipartFormDataContent");
+				}
+			});
 		}
 
 		private HttpRequestMessage HttpRequestMessage(HttpMethod httpMethod)
 		{
-			var httpRequestMessage = new HttpRequestMessage
+			var message = new HttpRequestMessage {Method = httpMethod};
+			foreach (var messageBuilder in MessageBuilders)
 			{
-				Method = httpMethod,
-				Content = Content,
-				RequestUri = new UriBuilder(Client.BaseAddress)
-				{
-					Path = _relativeUri,
-					Query = ToQueryString()
-				}.Uri
-			};
-
-			foreach (var (key, value) in RequestHeaders) httpRequestMessage.Headers.Add(key, value);
-
-			return httpRequestMessage;
-		}
-
-		private string ToQueryString()
-		{
-			var query = HttpUtility.ParseQueryString(string.Empty);
-
-			for (var i = 0; i < RequestParams.Count; i++)
-			{
-				foreach (var value in RequestParams.GetValues(i))
-				{
-					query[RequestParams.GetKey(i)] = value;
-				}
+				messageBuilder(message);
 			}
-
-			return query.ToString();
+			return message;
 		}
 
-		private HestifyClient Clone()
+		private HestifyClient Clone(Action<HttpRequestMessage> action)
 		{
-			var clone = new HestifyClient(Client, _relativeUri)
+			return new HestifyClient(Client)
 			{
-				RequestHeaders = new Dictionary<string, string>(RequestHeaders),
-				RequestParams = new NameValueCollection(RequestParams),
-				Content = Content,
-				_interceptor = _interceptor
+				MessageBuilders = MessageBuilders.WithOne(action) 
 			};
-			return clone;
+		}
+
+		public void Dispose()
+		{
+			Client?.Dispose();
 		}
 	}
 }
