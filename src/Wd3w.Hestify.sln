@@ -9,6 +9,8 @@ ProjectSection(SolutionItems) = preProject
 	..\LICENSE = ..\LICENSE
 EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hestify.Test", "Hestify.Test\Hestify.Test.csproj", "{A86ABAA9-2134-4642-8549-C2C42466ECC2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,5 +21,9 @@ Global
 		{983FA234-58A7-4367-9727-9E193DFF9F5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{983FA234-58A7-4367-9727-9E193DFF9F5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{983FA234-58A7-4367-9727-9E193DFF9F5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A86ABAA9-2134-4642-8549-C2C42466ECC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A86ABAA9-2134-4642-8549-C2C42466ECC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A86ABAA9-2134-4642-8549-C2C42466ECC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A86ABAA9-2134-4642-8549-C2C42466ECC2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

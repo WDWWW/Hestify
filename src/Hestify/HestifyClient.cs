@@ -93,6 +93,27 @@ namespace Hestify
 			});
 		}
 
+		public HestifyClient WithRelativePath(string path)
+		{
+			return WithUri(new Uri(path));
+		}
+
+		public HestifyClient WithBasePath(string baseAddress)
+		{
+			return Clone(message =>
+			{
+				
+			});
+		}
+
+		public HestifyClient WithUri(Uri uri)
+		{
+			return Clone(message =>
+			{
+				message.RequestUri = uri;
+			});
+		}
+
 		public HestifyClient WithParams(params (string key, string value)[] parameters)
 		{
 			return Clone(message =>
