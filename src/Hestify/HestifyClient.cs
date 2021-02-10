@@ -34,6 +34,10 @@ namespace Hestify
 		{
 		}
 
+		public HestifyClient(Uri baseAddress) : this(new HttpClient {BaseAddress = baseAddress})
+		{
+		}
+
 		public HestifyClient() : this(new HttpClient())
 		{
 		}
