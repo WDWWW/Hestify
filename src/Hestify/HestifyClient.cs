@@ -110,11 +110,14 @@ namespace Hestify
 
 		public HestifyClient WithUri(Uri uri)
 		{
-			return With(message =>
-			{
-				message.RequestUri = uri;
-			});
+			return With(message => message.RequestUri = uri);
 		}
+
+		public HestifyClient WithUri(string uri)
+		{
+			return WithUri(new Uri(uri));
+		} 
+		
 
 		public HestifyClient WithParams(params (string key, string value)[] parameters)
 		{
@@ -156,7 +159,7 @@ namespace Hestify
 
 		private async Task<HttpResponseMessage> SendAsync(HttpMethod method)
 		{
-			using var message = RequestMessage;
+			using var message = RequestMessage  ;
 			message.Method = method;
 			return await Client.SendAsync(message);
 		}
