@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -11,6 +12,7 @@ using System.Xml.Serialization;
 using Hestify.Helpers;
 using Newtonsoft.Json;
 
+[assembly:InternalsVisibleTo("Hestify.Test")]
 namespace Hestify
 {
     public class HestifyClient : IDisposable
@@ -41,7 +43,7 @@ namespace Hestify
 
 		public HestifyClient WithHeader(string key, string value)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				message.Headers.Add(key, value);
 			});
@@ -49,7 +51,7 @@ namespace Hestify
 
 		public HestifyClient WithHeader(HttpRequestHeader key, string value)
 		{
-			return Clone(message => message.Headers.Add(key.ToString(), value));
+			return With(message => message.Headers.Add(key.ToString(), value));
 		}
 
 		public HestifyClient WithBearerToken(string token)
@@ -74,7 +76,7 @@ namespace Hestify
 
 		public HestifyClient WithBody(HttpContent content)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				if (message.Content != default)
 					throw new InvalidOperationException("HttpContent is already set. Request can have only one http content.");
@@ -85,7 +87,7 @@ namespace Hestify
 
 		public HestifyClient WithParam(string key, string value)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
 				query[key] = value;
@@ -100,7 +102,7 @@ namespace Hestify
 
 		public HestifyClient WithBasePath(string baseAddress)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				
 			});
@@ -108,7 +110,7 @@ namespace Hestify
 
 		public HestifyClient WithUri(Uri uri)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				message.RequestUri = uri;
 			});
@@ -116,7 +118,7 @@ namespace Hestify
 
 		public HestifyClient WithParams(params (string key, string value)[] parameters)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
 				foreach (var (key, value) in parameters)
@@ -165,7 +167,7 @@ namespace Hestify
 
 		public HestifyClient WithMultipartForm(Stream stream, string name = null, string filename = null)
 		{
-			return Clone(message =>
+			return With(message =>
 			{
 				switch (message.Content)
 				{
@@ -195,7 +197,7 @@ namespace Hestify
 			return message;
 		}
 
-		private HestifyClient Clone(Action<HttpRequestMessage> action)
+		public HestifyClient With(Action<HttpRequestMessage> action)
 		{
 			return new HestifyClient(Client)
 			{
