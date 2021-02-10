@@ -154,10 +154,11 @@ namespace Hestify
 			return await SendAsync(HttpMethod.Patch);
 		}
 
-		private async Task<HttpResponseMessage> SendAsync(HttpMethod httpMethod)
+		private async Task<HttpResponseMessage> SendAsync(HttpMethod method)
 		{
-			using var httpRequestMessage = HttpRequestMessage(httpMethod);
-			return await Client.SendAsync(httpRequestMessage);
+			using var message = RequestMessage;
+			message.Method = method;
+			return await Client.SendAsync(message);
 		}
 
 		public HestifyClient WithMultipartForm(FileStream fileStream, string name = null)
@@ -187,14 +188,17 @@ namespace Hestify
 			});
 		}
 
-		private HttpRequestMessage HttpRequestMessage(HttpMethod httpMethod)
+		public HttpRequestMessage RequestMessage
 		{
-			var message = new HttpRequestMessage {Method = httpMethod};
-			foreach (var messageBuilder in MessageBuilders)
+			get
 			{
-				messageBuilder(message);
+				var message = new HttpRequestMessage();
+				foreach (var messageBuilder in MessageBuilders)
+				{
+					messageBuilder(message);
+				}
+				return message;
 			}
-			return message;
 		}
 
 		public HestifyClient With(Action<HttpRequestMessage> action)

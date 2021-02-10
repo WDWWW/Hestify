@@ -2,7 +2,7 @@
 using FluentAssertions;
 using Xunit;
 
-namespace Hestify
+namespace Hestify.Test
 {
     public class ConstructorTest
     {
