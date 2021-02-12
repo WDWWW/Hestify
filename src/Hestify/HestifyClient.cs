@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,6 +44,9 @@ namespace Hestify
 		}
 
 		private IEnumerable<Action<HttpRequestMessage>> MessageBuilders { get; set; } = Enumerable.Empty<Action<HttpRequestMessage>>();
+
+
+		private IEnumerable<Action<HttpResponseMessage>> PostProcessor { get; set; } = Enumerable.Empty<Action<HttpResponseMessage>>();
 		
 
 		public HestifyClient WithHeader(string key, string value)
@@ -60,25 +64,37 @@ namespace Hestify
 
 		public HestifyClient WithBearerToken(string token)
 		{
-			return WithHeader("Authorization", "Bearer " + token);
+			return WithAuthorization("Bearer", token);
 		}
 
-		public HestifyClient WithJsonBody<T>(T content) where T : class
+		public HestifyClient WithBasicToken(string token)
 		{
-			return WithBody(new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json"));
+			return WithAuthorization("Basic", token);
 		}
 
-		public HestifyClient WithXmlBody<T>(T content, string mediaType = "application/xml")
+		public HestifyClient WithAuthorization(string scheme, string token)
+		{
+			Checks.IsNotNull(scheme);
+			Checks.IsNotNull(token);
+			return WithHeader(HttpRequestHeader.Authorization, $"{scheme} {token}");
+		}
+		
+		public HestifyClient WithJsonContent<T>(T content, string mediaType = "application/json") where T : class
+		{
+			return WithContent(new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, mediaType));
+		}
+
+		public HestifyClient WithXmlContent<T>(T content, string mediaType = "application/xml")
 		{
 			var xmlSerializer = new XmlSerializer(typeof(T));
 			using var memoryStream = new MemoryStream();
 			using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8);
 			xmlSerializer.Serialize(streamWriter, content);
 			var body = Encoding.UTF8.GetString(memoryStream.ToArray());
-			return WithBody(new StringContent(body, Encoding.UTF8, mediaType));
+			return WithContent(new StringContent(body, Encoding.UTF8, mediaType));
 		}
 
-		public HestifyClient WithBody(HttpContent content)
+		public HestifyClient WithContent(HttpContent content, MediaTypeHeaderValue value = null)
 		{
 			return With(message =>
 			{
@@ -86,15 +102,28 @@ namespace Hestify
 					throw new InvalidOperationException("HttpContent is already set. Request can have only one http content.");
 
 				message.Content = content;
+				if (value != null) 
+					message.Content.Headers.ContentType = value;
 			});
 		}
 
-		public HestifyClient WithParam(string key, string value)
+		public HestifyClient WithQuery(string key, string value)
 		{
 			return With(message =>
 			{
 				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
 				query[key] = value;
+				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
+			});
+		}
+
+		public HestifyClient WithQuery(params (string key, string value)[] parameters)
+		{
+			return With(message =>
+			{
+				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
+				foreach (var (key, value) in parameters)
+					query[key] = value;
 				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
 			});
 		}
@@ -120,21 +149,8 @@ namespace Hestify
 		public HestifyClient WithUri(string uri)
 		{
 			return WithUri(new Uri(uri));
-		} 
-		
-
-		public HestifyClient WithParams(params (string key, string value)[] parameters)
-		{
-			return With(message =>
-			{
-				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
-				foreach (var (key, value) in parameters)
-				{
-					query[key] = value;
-				}
-				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
-			});
 		}
+
 
 		public async Task<HttpResponseMessage> GetAsync()
 		{
@@ -199,11 +215,9 @@ namespace Hestify
 		{
 			get
 			{
-				var message = new HttpRequestMessage();
+				var message = new HestifyRequestMessage();
 				foreach (var messageBuilder in MessageBuilders)
-				{
 					messageBuilder(message);
-				}
 				return message;
 			}
 		}

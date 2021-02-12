@@ -25,9 +25,9 @@ namespace Hestify.Test
             // When
             var message = await Client.WithUri("http://localhost:8080/api/index")
                 .WithHeader(HttpRequestHeader.Authorization, "Bearer AccessToken")
-                .WithParam("a", "b")
-                .WithParam("c", "d")
-                .WithJsonBody(content)
+                .WithQuery("a", "b")
+                .WithQuery("c", "d")
+                .WithJsonContent(content)
                 .PostAsync();
 
             // Then
