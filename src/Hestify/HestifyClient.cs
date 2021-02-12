@@ -51,10 +51,7 @@ namespace Hestify
 
 		public HestifyClient WithHeader(string key, string value)
 		{
-			return With(message =>
-			{
-				message.Headers.Add(key, value);
-			});
+			return With(message => message.Headers.Add(key, value));
 		}
 
 		public HestifyClient WithHeader(HttpRequestHeader key, string value)
@@ -94,13 +91,49 @@ namespace Hestify
 			return WithContent(new StringContent(body, Encoding.UTF8, mediaType));
 		}
 
+		public HestifyClient WithFormUrlEncodedContent(IEnumerable<KeyValuePair<string, string>> pairs)
+		{
+			return WithContent(new FormUrlEncodedContent(pairs));
+		}
+
+		public HestifyClient WithFileContent(string filePath, string name = "file")
+		{
+			var fileInfo = new FileInfo(filePath);
+			return WithFileContent(fileInfo, name);
+		}
+		
+		public HestifyClient WithFileContent(Stream stream, string name)
+		{
+			return WithFileContent(new StreamContent(stream), name);
+		}
+
+		public HestifyClient WithFileContent(Stream stream, string name, string filename)
+		{
+			return WithFileContent(new StreamContent(stream), name, filename);
+		}
+		
+		public HestifyClient WithFileContent(FileInfo fileInfo, string name)
+		{
+			return WithFileContent(new StreamContent(fileInfo.OpenRead()), name, fileInfo.Name);
+		}
+		
+		public HestifyClient WithFileContent(StreamContent stream, string name)
+		{
+			return WithContent(new MultipartFormDataContent {{stream, name}});
+		}
+		
+		public HestifyClient WithFileContent(StreamContent stream, string name, string filename)
+		{
+			return WithContent(new MultipartFormDataContent {{stream, name, filename}});
+		}
+
 		public HestifyClient WithContent(HttpContent content, MediaTypeHeaderValue value = null)
 		{
 			return With(message =>
 			{
 				if (message.Content != default)
 					throw new InvalidOperationException("HttpContent is already set. Request can have only one http content.");
-
+				
 				message.Content = content;
 				if (value != null) 
 					message.Content.Headers.ContentType = value;
