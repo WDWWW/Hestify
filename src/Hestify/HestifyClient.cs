@@ -214,7 +214,12 @@ namespace Hestify
 		{
 			using var message = RequestMessage  ;
 			message.Method = method;
-			return await Client.SendAsync(message);
+			var response = await Client.SendAsync(message);
+
+			foreach (var action in PostProcessor)
+				action(response);
+			
+			return response;
 		}
 
 		public HestifyClient WithMultipartForm(FileStream fileStream, string name = null)
