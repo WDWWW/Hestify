@@ -43,7 +43,7 @@ namespace Hestify
 		{
 		}
 
-		private IEnumerable<Action<HttpRequestMessage>> MessageBuilders { get; set; } = Enumerable.Empty<Action<HttpRequestMessage>>();
+		private IEnumerable<Action<RequestMessageOptions>> MessageBuilders { get; set; } = Enumerable.Empty<Action<RequestMessageOptions>>();
 
 
 		private IEnumerable<Action<HttpResponseMessage>> PostProcessor { get; set; } = Enumerable.Empty<Action<HttpResponseMessage>>();
@@ -51,12 +51,12 @@ namespace Hestify
 
 		public HestifyClient WithHeader(string key, string value)
 		{
-			return With(message => message.Headers.Add(key, value));
+			return WithRequestBuilder(message => message.Headers.Add(key, value));
 		}
 
 		public HestifyClient WithHeader(HttpRequestHeader key, string value)
 		{
-			return With(message => message.Headers.Add(key.ToString(), value));
+			return WithRequestBuilder(message => message.Headers.Add(key.ToString(), value));
 		}
 
 		public HestifyClient WithBearerToken(string token)
@@ -129,7 +129,7 @@ namespace Hestify
 
 		public HestifyClient WithContent(HttpContent content, MediaTypeHeaderValue value = null)
 		{
-			return With(message =>
+			return WithRequestMessageBuilder(message =>
 			{
 				if (message.Content != default)
 					throw new InvalidOperationException("HttpContent is already set. Request can have only one http content.");
@@ -142,22 +142,15 @@ namespace Hestify
 
 		public HestifyClient WithQuery(string key, string value)
 		{
-			return With(message =>
-			{
-				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
-				query[key] = value;
-				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
-			});
+			return WithRequestBuilder(message => message.Query[key] = value);
 		}
 
 		public HestifyClient WithQuery(params (string key, string value)[] parameters)
 		{
-			return With(message =>
+			return WithRequestBuilder(message =>
 			{
-				var query = HttpUtility.ParseQueryString(message.RequestUri.Query);
 				foreach (var (key, value) in parameters)
-					query[key] = value;
-				message.RequestUri = new UriBuilder(message.RequestUri) {Query = query.ToString()}.Uri;
+					message.Query[key] = value;
 			});
 		}
 
@@ -166,17 +159,23 @@ namespace Hestify
 			return WithUri(new Uri(path));
 		}
 
-		public HestifyClient WithBasePath(string baseAddress)
+		public HestifyClient WithBaseUri(string baseAddress)
 		{
-			return With(message =>
+			return WithRequestMessageBuilder(message =>
 			{
-				
+				if (message.RequestUri != default)
+				{
+					message.RequestUri = new UriBuilder(message.RequestUri)
+					{
+						
+					}.Uri;
+				}
 			});
 		}
 
 		public HestifyClient WithUri(Uri uri)
 		{
-			return With(message => message.RequestUri = uri);
+			return WithRequestMessageBuilder(message => message.RequestUri = uri);
 		}
 
 		public HestifyClient WithUri(string uri)
@@ -184,6 +183,10 @@ namespace Hestify
 			return WithUri(new Uri(uri));
 		}
 
+		public HestifyClient WithEnsureSuccessCode()
+		{
+			return WithResponseProcessor(response => response.EnsureSuccessStatusCode());
+		}
 
 		public async Task<HttpResponseMessage> GetAsync()
 		{
@@ -229,18 +232,23 @@ namespace Hestify
 
 		public HestifyClient WithMultipartForm(Stream stream, string name = null, string filename = null)
 		{
-			return With(message =>
+			return WithRequestBuilder(message =>
 			{
-				switch (message.Content)
+				switch (message.ContentBuilder)
 				{
-					case MultipartFormDataContent content:
+					case MultipartFormDataContentBuilder content:
 						content.Add(new StreamContent(stream), name, filename);
 						break;
 					case null:
-						message.Content = new MultipartFormDataContent
-						{
-							{new StreamContent(stream), name, filename}
-						};
+						var builder = new MultipartFormDataContentBuilder();
+						if (name == null && filename == null)
+							builder.Add(new StreamContent(stream));
+						else if (filename == null)
+							builder.Add(new StreamContent(stream), name);
+						else 
+							builder.Add(new StreamContent(stream), name ?? filename, filename);
+						
+						message.ContentBuilder = builder;
 						break;
 					default:
 						throw new InvalidOperationException(
@@ -253,20 +261,41 @@ namespace Hestify
 		{
 			get
 			{
-				var message = new HestifyRequestMessage();
+				var message = new RequestMessageOptions();
 				foreach (var messageBuilder in MessageBuilders)
 					messageBuilder(message);
-				return message;
+				return message.BuildMessage();
 			}
 		}
 
-		public HestifyClient With(Action<HttpRequestMessage> action)
+		public HestifyClient WithRequestMessageBuilder(Action<HttpRequestMessage> action)
+		{
+			return new(Client)
+			{
+				MessageBuilders = MessageBuilders.WithOne(options => action(options.Message)),
+				PostProcessor = PostProcessor
+			};
+		}
+
+
+		public HestifyClient WithRequestBuilder(Action<RequestMessageOptions> action)
+		{
+			return new(Client)
+			{
+				MessageBuilders = MessageBuilders.WithOne(action),
+				PostProcessor = PostProcessor
+			};
+		}
+
+		public HestifyClient WithResponseProcessor(Action<HttpResponseMessage> action)
 		{
 			return new HestifyClient(Client)
 			{
-				MessageBuilders = MessageBuilders.WithOne(action) 
+				MessageBuilders = MessageBuilders,
+				PostProcessor = PostProcessor.WithOne(action)
 			};
 		}
+			
 
 		public void Dispose()
 		{

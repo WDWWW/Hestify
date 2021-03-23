@@ -18,7 +18,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var message = _client.With(_ => _.Headers.Add("Some", "Value"))
+            var message = _client.WithRequestBuilder(_ => _.Headers.Add("Some", "Value"))
                 .RequestMessage;
 
             // Then
@@ -31,8 +31,8 @@ namespace Hestify.Test
             // Given
             // When
             var message = _client
-                .With(_ => _.Headers.Add("Some", "Value1"))
-                .With(_ => _.Headers.Add("Some", "Value2"))
+                .WithRequestBuilder(_ => _.Headers.Add("Some", "Value1"))
+                .WithRequestBuilder(_ => _.Headers.Add("Some", "Value2"))
                 .RequestMessage;
 
             // Then
@@ -46,9 +46,9 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var client1 = _client.With(_ => { });
-            var client2 = client1.With(_ => { });
-            var client3 = client2.With(_ => { });
+            var client1 = _client.WithRequestBuilder(_ => { });
+            var client2 = client1.WithRequestBuilder(_ => { });
+            var client3 = client2.WithRequestBuilder(_ => { });
 
             // Then
             client1.Should().NotBeSameAs(_client);
