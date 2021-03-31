@@ -15,7 +15,7 @@ namespace Hestify.Test
         {
             // Given
             var content = new {A = "b"};
-            var request = MockMssageHandler.When(HttpMethod.Post, "http://localhost:8080/api/index")
+            var request = MockHttp.When(HttpMethod.Post, "http://localhost:8080/api/index")
                 .WithHeaders(HttpRequestHeader.Authorization.ToString(), "Bearer AccessToken")
                 .WithQueryString("a", "b")
                 .WithQueryString("c", "d")
@@ -34,7 +34,7 @@ namespace Hestify.Test
             message.StatusCode.Should().Be(HttpStatusCode.OK);
             var response = await message.Content.ReadAsStringAsync();
             response.Should().Be("Hello");
-            MockMssageHandler.GetMatchCount(request).Should().Be(1);
+            MockHttp.GetMatchCount(request).Should().Be(1);
         }
     }
 }

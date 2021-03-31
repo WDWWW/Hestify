@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net5.0;netstandard2.1</TargetFrameworks>
+        <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -17,6 +17,11 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
       <DocumentationFile>bin\Debug\Hestify.xml</DocumentationFile>
+      <NoWarn>1701;1702;159</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

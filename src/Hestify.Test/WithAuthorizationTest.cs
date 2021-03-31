@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Net.Http;
+using FluentAssertions;
 using Xunit;
 
 namespace Hestify.Test
@@ -8,8 +9,7 @@ namespace Hestify.Test
         [Fact]
         public void Should_IncludeBearerTokenInRequest_When_WithBearerToken()
         {
-            var headerValue = Client.WithBearerToken("TOKEN")
-                .RequestMessage
+            var headerValue = Client.WithBearerToken("TOKEN").BuildRequest()
                 .Headers
                 .Authorization;
 
@@ -22,8 +22,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var headerValue = Client.WithBasicToken("TOKEN")
-                .RequestMessage
+            var headerValue = Client.WithBasicToken("TOKEN").BuildRequest()
                 .Headers
                 .Authorization;
 
@@ -37,8 +36,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var headerValue = Client.WithAuthorization("SCHEME", "TOKEN")
-                .RequestMessage
+            var headerValue = Client.WithAuthorization("SCHEME", "TOKEN").BuildRequest()
                 .Headers
                 .Authorization;
 

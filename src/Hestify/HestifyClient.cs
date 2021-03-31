@@ -136,7 +136,7 @@ namespace Hestify
 				
 				message.Content = content;
 				if (value != null) 
-					message.Content.Headers.ContentType = value;
+					message.Content!.Headers.ContentType = value;
 			});
 		}
 
@@ -156,31 +156,34 @@ namespace Hestify
 
 		public HestifyClient WithRelativePath(string path)
 		{
-			return WithUri(new Uri(path));
+			var uri = new Uri(path, UriKind.RelativeOrAbsolute);
+			if (uri.IsAbsoluteUri)
+				throw new InvalidOperationException("path is only allow relative uri path.");
+			
+			return WithRequestBuilder(options =>
+			{
+				if (path.StartsWith("/"))
+					options.RelativePaths.Clear();
+				
+				options.RelativePaths.Add(path);
+			});
 		}
 
 		public HestifyClient WithBaseUri(string baseAddress)
 		{
-			return WithRequestMessageBuilder(message =>
-			{
-				if (message.RequestUri != default)
-				{
-					message.RequestUri = new UriBuilder(message.RequestUri)
-					{
-						
-					}.Uri;
-				}
-			});
+			return WithUri(new Uri(baseAddress, UriKind.Absolute));
 		}
 
 		public HestifyClient WithUri(Uri uri)
 		{
-			return WithRequestMessageBuilder(message => message.RequestUri = uri);
+			return uri.IsAbsoluteUri
+				? WithRequestBuilder(options => options.Uri = uri)
+				: WithRelativePath(uri.OriginalString);
 		}
 
 		public HestifyClient WithUri(string uri)
 		{
-			return WithUri(new Uri(uri));
+			return WithUri(new Uri(uri, UriKind.RelativeOrAbsolute));
 		}
 
 		public HestifyClient WithEnsureSuccessCode()
@@ -215,7 +218,7 @@ namespace Hestify
 
 		private async Task<HttpResponseMessage> SendAsync(HttpMethod method)
 		{
-			using var message = RequestMessage  ;
+			using var message = BuildRequest()  ;
 			message.Method = method;
 			var response = await Client.SendAsync(message);
 
@@ -225,7 +228,7 @@ namespace Hestify
 			return response;
 		}
 
-		public HestifyClient WithMultipartForm(FileStream fileStream, string name = null)
+		public HestifyClient MultipartForm(FileStream fileStream, string name = null)
 		{
 			return WithMultipartForm(fileStream, name, Path.GetFileName(fileStream.Name));
 		}
@@ -257,15 +260,13 @@ namespace Hestify
 			});
 		}
 
-		public HttpRequestMessage RequestMessage
+
+		public HttpRequestMessage BuildRequest()
 		{
-			get
-			{
-				var message = new RequestMessageOptions();
-				foreach (var messageBuilder in MessageBuilders)
-					messageBuilder(message);
-				return message.BuildMessage();
-			}
+			var message = new RequestMessageOptions();
+			foreach (var messageBuilder in MessageBuilders)
+				messageBuilder(message);
+			return message.BuildMessage();
 		}
 
 		public HestifyClient WithRequestMessageBuilder(Action<HttpRequestMessage> action)
@@ -289,7 +290,7 @@ namespace Hestify
 
 		public HestifyClient WithResponseProcessor(Action<HttpResponseMessage> action)
 		{
-			return new HestifyClient(Client)
+			return new(Client)
 			{
 				MessageBuilders = MessageBuilders,
 				PostProcessor = PostProcessor.WithOne(action)

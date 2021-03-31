@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Net.Http;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -12,8 +13,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var content = Client.WithJsonContent(new {A = "B", C = true})
-                .RequestMessage
+            var content = Client.WithJsonContent(new {A = "B", C = true}).BuildRequest()
                 .Content;
 
             // Then
@@ -27,8 +27,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var content = Client.WithXmlContent(new {A = "B", C = true})
-                .RequestMessage
+            var content = Client.WithXmlContent(new {A = "B", C = true}).BuildRequest()
                 .Content;
 
             // Then

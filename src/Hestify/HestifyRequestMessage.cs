@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Hestify
@@ -21,6 +23,10 @@ namespace Hestify
 
         public NameValueCollection Query = HttpUtility.ParseQueryString("");
 
+        public Uri? Uri { get; set; }
+
+        public IList<string> RelativePaths { get; set; } = new List<string> ();
+        
         public IHttpContentBuilder? ContentBuilder { get; set; }
         
         internal HttpRequestMessage BuildMessage()
@@ -28,11 +34,21 @@ namespace Hestify
             if (ContentBuilder != default)
                 Message.Content = ContentBuilder.Build();
 
-            Message.RequestUri = new UriBuilder(Message.RequestUri ?? throw new CannotBuildMessageException("Should request meesage builder have base or relative url for requesting"))
+            var uri = Message.RequestUri ?? Uri ?? throw new CannotBuildMessageException("Should request meesage builder have base or relative url for requesting");
+            if (!uri.IsAbsoluteUri)
+                throw new InvalidOperationException("HttpRequestMessage or RequestMessageOptions.Uri can't be relative path.");
+            
+            var relativePath = string.Join("/", RelativePaths);
+            if (!string.IsNullOrEmpty(uri.AbsolutePath))
+                relativePath = string.IsNullOrEmpty(relativePath)
+                    ? uri.AbsolutePath
+                    : uri.AbsolutePath + "/" + relativePath;
+
+            Message.RequestUri = new UriBuilder(uri)
             {
+                Path = new Regex(@"\/\/+").Replace(relativePath, "/"),
                 Query = Query.ToString()
             }.Uri;
-
             return Message;
         }
     }

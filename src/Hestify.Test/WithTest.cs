@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using FluentAssertions;
 using Xunit;
 
@@ -18,8 +19,7 @@ namespace Hestify.Test
         {
             // Given
             // When
-            var message = _client.WithRequestBuilder(_ => _.Headers.Add("Some", "Value"))
-                .RequestMessage;
+            var message = _client.WithRequestBuilder(_ => _.Headers.Add("Some", "Value")).BuildRequest();
 
             // Then
             message.Headers.GetValues("Some").Should().Contain("Value");
@@ -32,8 +32,7 @@ namespace Hestify.Test
             // When
             var message = _client
                 .WithRequestBuilder(_ => _.Headers.Add("Some", "Value1"))
-                .WithRequestBuilder(_ => _.Headers.Add("Some", "Value2"))
-                .RequestMessage;
+                .WithRequestBuilder(_ => _.Headers.Add("Some", "Value2")).BuildRequest();
 
             // Then
             message.Headers.GetValues("Some").Should().Contain("Value1")
