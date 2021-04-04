@@ -34,7 +34,7 @@ namespace Hestify
             if (ContentBuilder != default)
                 Message.Content = ContentBuilder.Build();
 
-            var uri = Message.RequestUri ?? Uri ?? throw new CannotBuildMessageException("Should request meesage builder have base or relative url for requesting");
+            var uri = Message.RequestUri ?? Uri ?? throw new CannotBuildMessageException("Should request message builder have any base or relative url to bulid request message.");
             if (!uri.IsAbsoluteUri)
                 throw new InvalidOperationException("HttpRequestMessage or RequestMessageOptions.Uri can't be relative path.");
             

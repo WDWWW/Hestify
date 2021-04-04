@@ -1,11 +1,16 @@
-﻿using System.Net.Http;
+﻿using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Primitives;
 using RichardSzalay.MockHttp;
+using RichardSzalay.MockHttp.Matchers;
 
 namespace Hestify.Test.Helpers
 {
+    using And = AndConstraint<HttpRequestMessageAssertions>;
     public class HttpRequestMessageAssertions : ReferenceTypeAssertions<HttpRequestMessage, HttpRequestMessageAssertions>
     {
         protected override string Identifier => "httprequestmessage";
@@ -14,12 +19,74 @@ namespace Hestify.Test.Helpers
         {
         }
         
-        public AndConstraint<HttpRequestMessageAssertions> MatchUri(string uri)
+        public And MatchUri(string uri)
         {
             Execute.Assertion
                 .ForCondition(new MockedRequest(uri).Matches(Subject))
                 .FailWith("Expected request uri to be {0}, but found {1}.", uri, Subject.RequestUri?.ToString());
             
+            return new(this);
+        }
+
+        public And BeMediaType(string contentType)
+        {
+            var mockedRequest = new MockedRequest();
+            mockedRequest.With(message => message.Content?.Headers.ContentType?.MediaType == contentType);
+            Execute.Assertion
+                .ForCondition(mockedRequest.Matches(Subject))
+                .FailWith("Expected request content media type to be {0}, but found {1}.", contentType, Subject.Content?.Headers.ContentType?.MediaType);
+
+            return new(this);
+        }
+
+        public And HasTextContent(string content)
+        {
+            Execute.Assertion
+                .ForCondition(new MockedRequest().With(new ContentMatcher(content)).Matches(Subject))
+                .FailWith("Expected request content to be {0}, but found {1}.", content,
+                    Subject.Content?.ReadAsStringAsync().Result);
+
+            return new(this);
+        }
+
+        public And ContainsHeader(HttpRequestHeader headers)
+        {
+            return ContainsHeader(headers.ToString());
+        }
+
+        public And ContainsHeader(string header)
+        {
+            Execute.Assertion
+                .ForCondition(Subject.Headers.Contains(header))
+                .FailWith("Expected request headers to contains {0}, but there are no the header.", header);
+            return new(this);
+        }
+
+        public And ContainsHeaderValue(string header, string value)
+        {
+            ContainsHeader(header);
+            Execute.Assertion
+                .ForCondition(Subject.Headers.GetValues(header).Contains(value))
+                .FailWith("Expected request headers to contains header({0}) value({value}), but there are no the header value.", header, value);
+            return new(this);
+        }
+
+        public And ContainsHeaderValueExactly(string header, params string[] values)
+        {
+            ContainsHeader(header);
+            var headerValues = Subject.Headers.GetValues(header).ToList();
+            Execute.Assertion
+                .ForCondition(headerValues.Union(values).Count() == values.Length)
+                .FailWith("Expected request content to be same with ({0}), but the request header value are {1}.", values,
+                    headerValues);
+            return new(this);
+        }
+
+        public And BeOfHttpMethod(HttpMethod method)
+        {
+            Execute.Assertion
+                .ForCondition(Subject.Method == method)
+                .FailWith("Expected request method to be {0}, but request method is {1}.", method.Method, Subject.Method.Method);
             return new(this);
         }
     }

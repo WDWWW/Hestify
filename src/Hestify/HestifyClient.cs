@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -83,7 +84,12 @@ namespace Hestify
 
 		public HestifyClient WithXmlContent<T>(T content, string mediaType = "application/xml")
 		{
-			var xmlSerializer = new XmlSerializer(typeof(T));
+			var type = typeof(T);
+			if (type.FullName!.Contains("AnonymousType") &&
+			    type.GetCustomAttributes<CompilerGeneratedAttribute>().Any())
+				throw new ArgumentException("content type must not be anonymous type.");
+
+			var xmlSerializer = new XmlSerializer(type);
 			using var memoryStream = new MemoryStream();
 			using var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8);
 			xmlSerializer.Serialize(streamWriter, content);
