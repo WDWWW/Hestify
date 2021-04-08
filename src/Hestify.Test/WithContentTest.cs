@@ -12,28 +12,21 @@ namespace Hestify.Test
         [Fact]
         public void Should_IncludeJsonStringContentWithMediaTypeInMessage_When_WithJsonContent()
         {
-            // Given
-            // When
-            var request = Client
+            Client
                 .WithUri("https://www.test.com/api/resource")
-                .WithJsonContent(new {A = "B", C = true}).BuildRequest();
-            
-            // Then
-            request.Should().BeMediaType("application/json").And.HasTextContent(@"{""A"":""B"",""C"":true}");
+                .WithJsonContent(new {A = "B", C = true})
+                .BuildRequest()
+                .Should().BeMediaType("application/json").And.HasTextContent(@"{""A"":""B"",""C"":true}");
         }
 
         [Fact]
         public void Should_IncludeXmlStringContentWithMediaTypeInMessage_When_WithXmlContent()
         {
-            // Given
-            // When
-            var request = Client
+            Client
                 .WithUri("https://www.test.com/api/resource")
                 .WithXmlContent(new TestBody {A = "B", C = true})
-                .BuildRequest();
-            
-            // Then
-            request.Should().BeMediaType("application/xml")
+                .BuildRequest()
+                .Should().BeMediaType("application/xml")
                 .And.HasTextContent(@"<?xml version=""1.0"" encoding=""utf-8""?>
 <TestBody xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <A>B</A>

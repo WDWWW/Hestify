@@ -1,48 +1,39 @@
 ﻿using System.Net.Http;
+using System.Net.Http.Headers;
 using FluentAssertions;
+using Hestify.Test.Helpers;
 using Xunit;
 
 namespace Hestify.Test
 {
     public class WithAuthorizationTest : HestifyTestBase
     {
+        public WithAuthorizationTest() : base(true)
+        {
+        }
+
         [Fact]
         public void Should_IncludeBearerTokenInRequest_When_WithBearerToken()
         {
-            var headerValue = Client.WithBearerToken("TOKEN").BuildRequest()
-                .Headers
-                .Authorization;
-
-            headerValue!.Scheme.Should().Be("Bearer");
-            headerValue.Parameter.Should().Be("TOKEN");
+            Client.WithBearerToken("TOKEN")
+                .BuildRequest()
+                .Should().HaveAuthenticationHeaderValue(new ("Bearer", "TOKEN"));
         }
 
         [Fact]
         public void Should_IncludeBasicTokenInRequest_When_WithBasicToken()
         {
-            // Given
-            // When
-            var headerValue = Client.WithBasicToken("TOKEN").BuildRequest()
-                .Headers
-                .Authorization;
-
-            // Then
-            headerValue!.Scheme.Should().Be("Basic");
-            headerValue.Parameter.Should().Be("TOKEN");
+            Client.WithBasicToken("TOKEN")
+                .BuildRequest()
+                .Should().HaveAuthenticationHeaderValue(new("Basic", "TOKEN"));
         }
 
         [Fact]
         public void Should_IncludeSchemeAndToken_When_WithAuthorization()
         {
-            // Given
-            // When
-            var headerValue = Client.WithAuthorization("SCHEME", "TOKEN").BuildRequest()
-                .Headers
-                .Authorization;
-
-            // Then
-            headerValue!.Scheme.Should().Be("SCHEME");
-            headerValue.Parameter.Should().Be("TOKEN");
+            Client.WithAuthorization("SCHEME", "TOKEN")
+                .BuildRequest()
+                .Should().HaveAuthenticationHeaderValue(new("SCHEME", "TOKEN"));
         }
     }
 }

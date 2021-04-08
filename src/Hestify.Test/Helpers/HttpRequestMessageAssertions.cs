@@ -71,6 +71,11 @@ namespace Hestify.Test.Helpers
             return new(this);
         }
 
+        public And ContainsHeaderValue(HttpRequestHeader header, string value)
+        {
+            return ContainsHeaderValue(header.ToString(), value);
+        }
+
         public And ContainsHeaderValueExactly(string header, params string[] values)
         {
             ContainsHeader(header);
@@ -79,6 +84,41 @@ namespace Hestify.Test.Helpers
                 .ForCondition(headerValues.Union(values).Count() == values.Length)
                 .FailWith("Expected request content to be same with ({0}), but the request header value are {1}.", values,
                     headerValues);
+            return new(this);
+        }
+
+        public And HaveAuthenticationHeaderValue(AuthenticationHeaderValue value)
+        {
+            ContainsHeader(HttpRequestHeader.Authorization);
+            Execute.Assertion
+                .ForCondition(Subject.Headers.Authorization!.Equals(value))
+                .FailWith("Expected request to have authorization header value ({0}), but the request header value are {1}.",
+                    value,
+                    Subject.Headers.Authorization);
+            return new(this);
+        }
+
+        public And HasAuthenticationHeaderScheme(string scheme)
+        {
+            ContainsHeader(HttpRequestHeader.Authorization);
+            Execute.Assertion
+                .ForCondition(Subject.Headers.Authorization!.Scheme.Equals(scheme))
+                .FailWith(
+                    "Expected request to have authorization header scheme ({0}), but the request scheme value are {1}.",
+                    scheme,
+                    Subject.Headers.Authorization);
+            return new(this);
+        }
+
+        public And HasAuthenticationHeaderParameter(string parameter)
+        {
+            ContainsHeader(HttpRequestHeader.Authorization);
+            Execute.Assertion
+                .ForCondition(Subject.Headers.Authorization!.Parameter.Equals(parameter))
+                .FailWith(
+                    "Expected request to have authorization header parameter ({0}), but the request scheme value are {1}.",
+                    parameter,
+                    Subject.Headers.Authorization);
             return new(this);
         }
 

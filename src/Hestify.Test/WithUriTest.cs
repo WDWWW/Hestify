@@ -11,8 +11,8 @@ namespace Hestify.Test
         {
             Client
                 .WithUri(new Uri("e", UriKind.Relative))
-                .WithUri(new Uri("http://test.com/a/"))
-                .BuildRequest().Should().MatchUri("http://test.com/a/e");
+                .WithUri(new Uri("https://test.com/a/"))
+                .BuildRequest().Should().MatchUri("https://test.com/a/e");
         }
 
         [Fact]
@@ -21,8 +21,8 @@ namespace Hestify.Test
             Client
                 .WithUri(new Uri("/a/b", UriKind.Relative))
                 .WithUri(new Uri("c/d", UriKind.Relative))
-                .WithUri(new Uri("http://test.com"))
-                .BuildRequest().Should().MatchUri("http://test.com/a/b/c/d");
+                .WithUri(new Uri("https://test.com"))
+                .BuildRequest().Should().MatchUri("https://test.com/a/b/c/d");
         }
 
         [Fact]
@@ -31,8 +31,8 @@ namespace Hestify.Test
             Client
                 .WithUri(new Uri("/a/b", UriKind.Relative))
                 .WithUri(new Uri("/c/d", UriKind.Relative))
-                .WithUri(new Uri("http://test.com/b"))
-                .BuildRequest().Should().MatchUri("http://test.com/b/c/d");
+                .WithUri(new Uri("https://test.com/b"))
+                .BuildRequest().Should().MatchUri("https://test.com/b/c/d");
         }
 
         [Fact]
@@ -41,8 +41,8 @@ namespace Hestify.Test
             Client
                 .WithUri(new Uri("/a/b", UriKind.Relative))
                 .WithUri(new Uri("/c/d", UriKind.Relative))
-                .WithUri(new Uri("http://test.com"))
-                .BuildRequest().Should().MatchUri("http://test.com/c/d");
+                .WithUri(new Uri("https://test.com"))
+                .BuildRequest().Should().MatchUri("https://test.com/c/d");
         }
 
         [Fact]
@@ -53,8 +53,8 @@ namespace Hestify.Test
                 .WithUri("/c/d")
                 .WithUri("e")
                 .WithUri("f/g")
-                .WithUri("http://test.com/b/")
-                .BuildRequest().Should().MatchUri("http://test.com/b/c/d/e/f/g");
+                .WithUri("https://test.com/b/")
+                .BuildRequest().Should().MatchUri("https://test.com/b/c/d/e/f/g");
         }
 
         [Fact]
@@ -62,17 +62,17 @@ namespace Hestify.Test
         {
             Client
                 .WithUri("/a/b/")
-                .WithUri("http://test.com")
-                .BuildRequest().Should().MatchUri("http://test.com/a/b/");
+                .WithUri("https://test.com")
+                .BuildRequest().Should().MatchUri("https://test.com/a/b/");
         }
 
         [Fact]
         public void HostAndRelativeClientBuild()
         {
             Client
-                .WithUri("http://test.com")
+                .WithUri("https://test.com")
                 .WithUri("/a/b/")
-                .BuildRequest().Should().MatchUri("http://test.com/a/b/");
+                .BuildRequest().Should().MatchUri("https://test.com/a/b/");
         }
 
         [Fact]
@@ -81,9 +81,9 @@ namespace Hestify.Test
             Client
                 .WithUri(new Uri("/a/b", UriKind.Relative))
                 .WithUri(new Uri("/c/d", UriKind.Relative))
-                .WithUri(new Uri("http://test.com/b"))
-                .WithUri(new Uri("http://changed.com/b"))
-                .BuildRequest().Should().MatchUri("http://changed.com/b/c/d");
+                .WithUri(new Uri("https://test.com/b"))
+                .WithUri(new Uri("https://changed.com/b"))
+                .BuildRequest().Should().MatchUri("https://changed.com/b/c/d");
         }
     }
 }
